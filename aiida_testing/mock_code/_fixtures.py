@@ -10,6 +10,7 @@ import pathlib
 import typing as ty
 import warnings
 import collections
+import os
 
 import click
 import pytest
@@ -95,7 +96,7 @@ def mock_code_factory(
         ignore_files: ty.Iterable[str] = ('_aiidasubmit.sh', ),
         ignore_paths: ty.Iterable[str] = ('_aiidasubmit.sh', ),
         executable_name: str = '',
-        _config: dict = testing_config,
+        _config: Config = testing_config,
         _config_action: str = testing_config_action,
         _regenerate_test_data: bool = mock_regenerate_test_data,
     ):  # pylint: disable=too-many-arguments
@@ -172,6 +173,9 @@ def mock_code_factory(
             code_executable_path = shutil.which(executable_name) or 'NOT_FOUND'
         if _config_action == ConfigActions.GENERATE.value:
             mock_code_config[label] = code_executable_path
+        if code_executable_path not in ('TO_SPECIFY', 'NOT_FOUND') and \
+            not pathlib.Path(code_executable_path).is_absolute():
+            code_executable_path = os.fspath(_config.file_path / code_executable_path)
 
         code = Code(
             input_plugin_name=entry_point,
