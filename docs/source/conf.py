@@ -56,7 +56,7 @@ extensions = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'aiida': ('http://aiida-core.readthedocs.io/en/latest/', None),
+    'aiida': ('http://aiida-core.readthedocs.io/en/v1.6.8/', None),
 }
 
 nitpick_ignore = [('py:obj', 'module')]
@@ -100,7 +100,7 @@ version = '.'.join(release.split('.')[:2])
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
