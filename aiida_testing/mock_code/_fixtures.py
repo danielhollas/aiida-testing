@@ -24,6 +24,7 @@ __all__ = (
     "pytest_addoption",
     "testing_config_action",
     "mock_regenerate_test_data",
+    "mock_fail_on_missing",
     "testing_config",
     "mock_code_factory",
 )
@@ -44,6 +45,12 @@ def pytest_addoption(parser):
         default=False,
         help="Regenerate test data."
     )
+    parser.addoption(
+        "--mock-fail-on-missing",
+        action="store_true",
+        default=False,
+        help="Fail if cached data is not found, rather than regenerating it.",
+    )
 
 
 @pytest.fixture(scope='session')
@@ -56,6 +63,12 @@ def testing_config_action(request):
 def mock_regenerate_test_data(request):
     """Read whether to regenerate test data from command line option."""
     return request.config.getoption("--mock-regenerate-test-data")
+
+
+@pytest.fixture(scope='session')
+def mock_fail_on_missing(request):
+    """Read whether to fail if cached data is not found, rather than regenerating it."""
+    return request.config.getoption("--mock-fail-on-missing")
 
 
 @pytest.fixture(scope='session')
@@ -78,8 +91,9 @@ def testing_config(testing_config_action):  # pylint: disable=redefined-outer-na
 
 @pytest.fixture(scope='function')
 def mock_code_factory(
-    aiida_localhost, testing_config, testing_config_action, mock_regenerate_test_data
-):  # pylint: disable=redefined-outer-name
+    aiida_localhost, testing_config, testing_config_action, mock_regenerate_test_data,
+    mock_fail_on_missing, request: pytest.FixtureRequest, tmp_path: pathlib.Path
+):  # pylint: disable=too-many-arguments,redefined-outer-name
     """
     Fixture to create a mock AiiDA Code.
 
@@ -88,18 +102,21 @@ def mock_code_factory(
 
 
     """
+    log_file = tmp_path.joinpath("_aiida_mock_code.log")
+    log_file.touch()
 
     def _get_mock_code(
         label: str,
-        entry_point: str,
-        data_dir_abspath: ty.Union[str, pathlib.Path],
+        entry_point: ty.Optional[str] = None,
+        data_dir_abspath: ty.Union[None, str, pathlib.Path] = None,
         ignore_files: ty.Iterable[str] = ('_aiidasubmit.sh', ),
         ignore_paths: ty.Iterable[str] = ('_aiidasubmit.sh', ),
         executable_name: str = '',
         _config: Config = testing_config,
         _config_action: str = testing_config_action,
         _regenerate_test_data: bool = mock_regenerate_test_data,
-    ):  # pylint: disable=too-many-arguments
+        _fail_on_missing: bool = mock_fail_on_missing,
+    ):  # pylint: disable=too-many-arguments,too-many-branches
         """
         Creates a mock AiiDA code. If the same inputs have been run previously,
         the results are copied over from the corresponding sub-directory of
@@ -145,6 +162,12 @@ def mock_code_factory(
             assert isinstance(arg, collections.abc.Iterable) and not isinstance(arg, str), \
                 f"'ignore_files' and 'ignore_paths' arguments must be tuples or lists, found {type(arg)}"
 
+        if entry_point is None:
+            entry_point = label
+        if data_dir_abspath is None:
+            request.node.path.parent.joinpath("data").mkdir(exist_ok=True)
+            data_dir_abspath = request.node.path.parent / "data"
+
         # we want to set a custom prepend_text, which is why the code
         # can not be reused.
         code_label = f'mock-{label}-{uuid.uuid4()}'
@@ -168,30 +191,28 @@ def mock_code_factory(
             raise ValueError(
                 f"Configuration file {CONFIG_FILE_NAME} does not specify path to executable for code label '{label}'."
             )
-        code_executable_path = mock_code_config.get(label, 'TO_SPECIFY')
 
-        if code_executable_path != 'TO_SPECIFY' and \
-           not pathlib.Path(code_executable_path).is_absolute():
-            #Relative paths are interpreted with respect to the
-            #aiida-testing-config.yml file
-            relative_path = _config.file_path.parent / code_executable_path
+        code_executable_path = mock_code_config.get(label, '')
+        if label in mock_code_config and not pathlib.Path(mock_code_config[label]).is_absolute():
+            # Relative paths are interpreted with respect to the
+            # aiida-testing-config.yml file
+            relative_path = _config.file_path.parent / mock_code_config[label]
             code_executable_path = os.fspath(relative_path)
             if not relative_path.exists():
                 raise ValueError(
                     f"Relative path {code_executable_path} in {CONFIG_FILE_NAME} "
                     f"does not exist for code label '{label}'."
                 )
-
-        elif code_executable_path == 'TO_SPECIFY' and executable_name:
-            code_executable_path = shutil.which(executable_name)
-            if code_executable_path is None:
+        elif label not in mock_code_config and executable_name:
+            _exec_path = shutil.which(executable_name)
+            if _exec_path is None:
                 raise ValueError(
                     f"Executable {executable_name} not found on PATH for code label '{label}'."
                 )
+            code_executable_path = _exec_path
 
         if _config_action == ConfigActions.GENERATE.value:
             mock_code_config[label] = code_executable_path
-        print(code_executable_path)
         code = Code(
             input_plugin_name=entry_point,
             remote_computer_exec=[aiida_localhost, mock_executable_path]
@@ -200,12 +221,14 @@ def mock_code_factory(
         code.set_prepend_text(
             inspect.cleandoc(
                 f"""
+                export {EnvKeys.LOG_FILE.value}="{log_file.absolute()}"
                 export {EnvKeys.LABEL.value}="{label}"
                 export {EnvKeys.DATA_DIR.value}="{data_dir_abspath}"
                 export {EnvKeys.EXECUTABLE_PATH.value}="{code_executable_path}"
                 export {EnvKeys.IGNORE_FILES.value}="{':'.join(ignore_files)}"
                 export {EnvKeys.IGNORE_PATHS.value}="{':'.join(ignore_paths)}"
                 export {EnvKeys.REGENERATE_DATA.value}={'True' if _regenerate_test_data else 'False'}
+                export {EnvKeys.FAIL_ON_MISSING.value}={'True' if _fail_on_missing else 'False'}
                 """
             )
         )
@@ -213,4 +236,9 @@ def mock_code_factory(
         code.store()
         return code
 
-    return _get_mock_code
+    yield _get_mock_code
+
+    log_text = log_file.read_text("utf8")
+    print("AiiDA mock code logging:")
+    if log_text:
+        print(log_text)
