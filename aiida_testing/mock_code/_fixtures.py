@@ -10,11 +10,13 @@ import typing as ty
 import warnings
 import collections
 import os
+from pkg_resources import parse_version
 
 import click
 import pytest
 
 from aiida.orm import Code
+from aiida import __version__ as aiida_version
 
 from ._env_keys import MockVariables
 from ._hasher import InputHasher
@@ -25,6 +27,7 @@ __all__ = (
     "testing_config_action",
     "mock_regenerate_test_data",
     "mock_fail_on_missing",
+    "mock_disable_mpi",
     "testing_config",
     "mock_code_factory",
 )
@@ -51,6 +54,12 @@ def pytest_addoption(parser):
         default=False,
         help="Fail if cached data is not found, rather than regenerating it.",
     )
+    parser.addoption(
+        "--mock-disable-mpi",
+        action="store_true",
+        default=False,
+        help="Run all calculations with `metadata.options.usempi=False`.",
+    )
 
 
 @pytest.fixture(scope='session')
@@ -71,6 +80,15 @@ def mock_fail_on_missing(request):
     return request.config.getoption("--mock-fail-on-missing")
 
 
+@pytest.fixture(scope='function')
+def mock_disable_mpi(request):
+    """Enforce `withmpi=False` based on `--mock-disable-mpi` cli option.
+
+    This is achieved by monkey-patching the `CalcJob.get_option()` method.
+    """
+    return request.config.getoption("--mock-disable-mpi")
+
+
 @pytest.fixture(scope='session')
 def testing_config(testing_config_action):  # pylint: disable=redefined-outer-name
     """Get content of .aiida-testing-config.yml
@@ -89,17 +107,26 @@ def testing_config(testing_config_action):  # pylint: disable=redefined-outer-na
         config.to_file()
 
 
+def _forget_mpi_decorator(func):
+    """Modify :py:meth:`aiida.orm.Code.get_prepend_cmdline_params` to discard MPI parameters."""
+
+    def _get_prepend_cmdline_params(self, mpi_args=None, extra_mpirun_params=None):  # pylint: disable=unused-argument
+        return func(self)
+
+    return _get_prepend_cmdline_params
+
+
 @pytest.fixture(scope='function')
 def mock_code_factory(
     aiida_localhost, testing_config, testing_config_action, mock_regenerate_test_data,
-    mock_fail_on_missing, request: pytest.FixtureRequest, tmp_path: pathlib.Path
-):  # pylint: disable=too-many-arguments,redefined-outer-name
+    mock_fail_on_missing, mock_disable_mpi, monkeypatch, request: pytest.FixtureRequest,
+    tmp_path: pathlib.Path
+):  # pylint: disable=too-many-arguments,redefined-outer-name,unused-argument,too-many-statements
     """
     Fixture to create a mock AiiDA Code.
 
     testing_config_action :
         Read config file if present ('read'), require config file ('require') or generate new config file ('generate').
-
 
     """
     log_file = tmp_path.joinpath("_aiida_mock_code.log")
@@ -117,6 +144,7 @@ def mock_code_factory(
         _config_action: str = testing_config_action,
         _regenerate_test_data: bool = mock_regenerate_test_data,
         _fail_on_missing: bool = mock_fail_on_missing,
+        _disable_mpi: bool = mock_disable_mpi,
     ):  # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
         """
         Creates a mock AiiDA code. If the same inputs have been run previously,
@@ -237,6 +265,24 @@ def mock_code_factory(
         code.set_prepend_text(variables.to_env())
 
         code.store()
+
+        # Monkeypatch MPI behavior of code class, if requested either directly via `--mock-disable-mpi` or
+        # indirectly via `--mock-fail-on-missing` (no need to use MPI in this case)
+        if _disable_mpi or _fail_on_missing:
+            is_mpi_disable_supported = parse_version(aiida_version) >= parse_version('2.1.0')
+
+            if not is_mpi_disable_supported:
+                if _disable_mpi:
+                    raise ValueError(
+                        "Upgrade to AiiDA >= 2.1.0 in order to use `--mock-disable-mpi`"
+                    )
+                # if only _fail_on_missing, we silently do not disable MPI
+            else:
+                monkeypatch.setattr(
+                    code.__class__, 'get_prepend_cmdline_params',
+                    _forget_mpi_decorator(code.__class__.get_prepend_cmdline_params)
+                )
+
         return code
 
     yield _get_mock_code

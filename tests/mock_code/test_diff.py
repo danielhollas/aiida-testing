@@ -5,11 +5,14 @@ Test basic usage of the mock code on examples using aiida-diff.
 
 import shutil
 import os
+import json
 import tempfile
 from pathlib import Path
+from pkg_resources import parse_version
 
 import pytest
 
+from aiida import __version__ as aiida_version
 from aiida.engine import run_get_node
 from aiida.plugins import CalculationFactory
 
@@ -208,3 +211,34 @@ def test_regenerate_test_data_executable(mock_code_factory, generate_diff_inputs
     # check that ignore_paths works
     assert not (datadir / '_aiidasubmit.sh').is_file()
     assert (datadir / 'file1.txt').is_file()
+
+
+@pytest.mark.skipif(
+    parse_version(aiida_version) < parse_version('2.1.0'), reason='requires AiiDA v2.1.0+'
+)
+def test_disable_mpi(mock_code_factory, generate_diff_inputs):  # pylint: disable=unused-argument
+    """
+    Check that disabling MPI is respected.
+
+    Let a CalcJob explicitly request `withmpi=True`, and check it is still run without MPI.
+    """
+    mock_code = mock_code_factory(
+        label='diff',
+        data_dir_abspath=TEST_DATA_DIR,
+        entry_point=CALC_ENTRY_POINT,
+        ignore_paths=('_aiidasubmit.sh', 'file*txt'),
+        _disable_mpi=True,
+    )
+
+    inputs = generate_diff_inputs()
+    inputs['metadata']['options']['withmpi'] = True
+
+    res, node = run_get_node(CalculationFactory(CALC_ENTRY_POINT), code=mock_code, **inputs)
+    assert node.exit_status == 0, f"diff calculation failed with exit status {node.exit_status}"
+    assert node.is_finished_ok
+    check_diff_output(res)
+
+    # check that the submit script does not contain mpirun
+    job_tmpl = json.loads(node.base.repository.get_object_content('.aiida/job_tmpl.json'))
+    assert not job_tmpl['codes_info'][0]['prepend_cmdline_params']
+    assert 'mpirun' not in node.base.repository.get_object_content('_aiidasubmit.sh')
