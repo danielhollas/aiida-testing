@@ -121,7 +121,7 @@ def mock_code_factory(
     aiida_localhost, testing_config, testing_config_action, mock_regenerate_test_data,
     mock_fail_on_missing, mock_disable_mpi, monkeypatch, request: pytest.FixtureRequest,
     tmp_path: pathlib.Path
-):  # pylint: disable=too-many-arguments,redefined-outer-name,unused-argument,too-many-statements
+):  # pylint: disable=all
     """
     Fixture to create a mock AiiDA Code.
 

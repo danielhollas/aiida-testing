@@ -58,7 +58,7 @@ class Config(collections.abc.MutableMapping):
         cwd = pathlib.Path().cwd()
         config: ty.Dict[str, str]
         for dir_path in [cwd, *cwd.parents]:
-            config_file_path = (dir_path / CONFIG_FILE_NAME)
+            config_file_path = dir_path / CONFIG_FILE_NAME
             if config_file_path.exists():
                 with open(config_file_path, encoding='utf8') as config_file:
                     config = yaml.load(config_file, Loader=yaml.SafeLoader)
