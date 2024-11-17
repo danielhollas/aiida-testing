@@ -22,6 +22,7 @@ classifiers = [
     "Environment :: Plugins",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -39,10 +40,10 @@ keywords = [
     "cache",
 ]
 urls = {Homepage = "https://aiida-testing.readthedocs.io/"}
-requires-python = ">=3.8"
+requires-python = ">=3.7"
 # Note the dependency on setuptools due to pkg_resources
 dependencies = [
-    "aiida-core>=2.0.0,<2.6",
+    "aiida-core>=1.0.0,<2.6",
     "pytest>=7.0",
     "voluptuous~=0.12",
     "setuptools",
