@@ -9,12 +9,8 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        python-version: ['3.9', '3.10']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
         editable_install_option: ['-e', '']
-        include:
-        #Test for aiida-core 1.X (since aiida-core 2.X does not support python 3.7)
-        - python-version: '3.7'
-          editable_install_option: '-e'
       fail-fast: false
 
     services:
@@ -37,9 +33,9 @@ jobs:
           - 5672:5672
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -47,7 +43,6 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install ${{ matrix.editable_install_option }} .[testing]
-        reentry scan -r aiida || true
 
     - name: Run test suite
       env:
@@ -61,16 +56,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.7
+        python-version: 3.11
     - name: Install python dependencies
       run: |
         pip install --upgrade pip
         pip install -e .[docs]
-        reentry scan -r aiida || true
     - name: Build docs
       run: cd docs && make
 
@@ -78,17 +72,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.8
+        python-version: 3.11
     - name: Install python dependencies
       run: |
         pip install --upgrade pip
         pip install -e .[pre_commit]
-        reentry scan -r aiida || true
     - name: Run pre-commit
       run: |
-        pre-commit install
         pre-commit run --all-files || ( git status --short ; git diff ; exit 1 )
