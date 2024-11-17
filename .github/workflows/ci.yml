@@ -46,7 +46,9 @@ jobs:
       with:
         version: ${{ env.UV_VER }}
     - name: Install package
-      run: uv pip install --system .[testing]
+      run: |
+        uv pip install --system -e .[testing]
+        reentry scan -r aiida || true
 
     - name: Run test suite
       env:
