@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # Sphinx configuration for aiida-testing
 #
 # This file is execfile()d with the current directory set to its
@@ -37,7 +35,6 @@ else:
     with contextlib.suppress(ImportError):
         import sphinx_rtd_theme
         html_theme = 'sphinx_rtd_theme'
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # -- General configuration ------------------------------------------------
 
@@ -56,7 +53,7 @@ extensions = [
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'aiida': ('http://aiida-core.readthedocs.io/en/v1.6.8/', None),
+    'aiida': ('https://aiida.readthedocs.io/projects/aiida-core/en/stable/', None),
     'pytest': ('https://docs.pytest.org/en/latest/', None)
 }
 
@@ -66,24 +63,18 @@ templates_path = ['_templates']
 # The suffix of source filenames.
 source_suffix = '.rst'
 
-# The encoding of source files.
-#source_encoding = 'utf-8-sig'
-
 # The master toctree document.
-#~ master_doc = 'index'
 master_doc = 'index'
 
 # General information about the project.
-project = u'aiida-testing'
+project = 'aiida-testing'
 copyright_first_year = "2019"
 copyright_owners = "The AiiDA Team"
 
 current_year = str(time.localtime().tm_year)
-copyright_year_string = current_year if current_year == copyright_first_year else "{}-{}".format(
-    copyright_first_year, current_year
-)
+copyright_year_string = current_year if current_year == copyright_first_year else f"{copyright_first_year}-{current_year}"
 # pylint: disable=redefined-builtin
-copyright = u'{}, {}. All rights reserved'.format(copyright_year_string, copyright_owners)
+copyright = f'{copyright_year_string}, {copyright_owners}. All rights reserved'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -146,9 +137,7 @@ pygments_style = 'sphinx'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-    'display_version': True,
-}
+# html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #~ html_theme_path = ["."]
@@ -221,9 +210,6 @@ html_use_opensearch = 'http://aiida-testing.readthedocs.io'
 #html_file_suffix = None
 
 # Language to be used for generating the HTML full-text search index.
-# Sphinx supports the following languages:
-#   'da', 'de', 'en', 'es', 'fi', 'fr', 'hu', 'it', 'ja'
-#   'nl', 'no', 'pt', 'ro', 'ru', 'sv', 'tr'
 html_search_language = 'en'
 
 # A dictionary with options for the search language support, empty by default.
@@ -291,11 +277,6 @@ def run_apidoc(_):
     source_dir = os.path.abspath(os.path.dirname(__file__))
     apidoc_dir = os.path.join(source_dir, 'apidoc')
     package_dir = os.path.join(source_dir, os.pardir, os.pardir, 'aiida_testing')
-
-    # In #1139, they suggest the route below, but this ended up
-    # calling sphinx-build, not sphinx-apidoc
-    #from sphinx.apidoc import main
-    #main([None, '-e', '-o', apidoc_dir, package_dir, '--force'])
 
     import subprocess
     cmd_path = 'sphinx-apidoc'
