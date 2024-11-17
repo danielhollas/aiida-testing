@@ -14,12 +14,7 @@ import sys
 import time
 import contextlib
 
-from aiida.manage.configuration import load_documentation_profile
-
 import aiida_testing
-
-load_documentation_profile()
-
 # -- AiiDA-related setup --------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
