@@ -1,4 +1,4 @@
-name: ci
+name: CI
 
 on: [push, pull_request]
 env:
@@ -12,13 +12,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        editable_install_option: ['']
-        include:
-        # Test editable install
-        - python-version: '3.8'
-          editable_install_option: '-e'
-
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
       fail-fast: false
 
     services:
@@ -52,7 +46,7 @@ jobs:
       with:
         version: ${{ env.UV_VER }}
     - name: Install package
-      run: uv pip install --system ${{ matrix.editable_install_option }} .[testing]
+      run: uv pip install --system .[testing]
 
     - name: Run test suite
       env:
