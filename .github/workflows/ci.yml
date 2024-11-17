@@ -53,11 +53,6 @@ jobs:
     - name: Install package
       run: uv pip install --system ${{ matrix.editable_install_option }} .[testing]
 
-    - name: Install python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install ${{ matrix.editable_install_option }} .[testing]
-
     - name: Run test suite
       env:
         # show timings of tests
@@ -74,7 +69,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.11
+        python-version: 3.7
 
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
@@ -95,7 +90,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.11
+        python-version: 3.10
 
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
