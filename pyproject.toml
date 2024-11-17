@@ -57,7 +57,7 @@ testing = [
 pre_commit = [
     "pre-commit",
     "pylint~=2.12.2",
-    "mypy==0.930",
+    "mypy==1.13",
     "types-setuptools==65.7.0.3",
     "types-PyYAML",
 ]

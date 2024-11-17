@@ -48,7 +48,7 @@ class Config(collections.abc.MutableMapping):
         return self.schema(self._dict)
 
     @classmethod
-    def from_file(cls):
+    def from_file(cls) -> 'Config':
         """
         Parses the configuration file ``.aiida-testing-config.yml``.
 
