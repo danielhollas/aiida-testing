@@ -12,7 +12,12 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11', '3.12']
-        editable_install_option: ['-e', '']
+        editable_install_option: ['']
+        include:
+        # Test editable install
+        - python-version: '3.8'
+          editable_install_option: '-e'
+
       fail-fast: false
 
     services:
