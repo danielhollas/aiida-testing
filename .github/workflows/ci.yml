@@ -1,6 +1,8 @@
 name: ci
 
 on: [push, pull_request]
+env:
+    UV_VER: "0.5.2"
 
 jobs:
 
@@ -39,6 +41,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${UV_VER}
+    - name: Install package
+      run: uv pip install --system ${{ matrix.editable_install_option }} .[testing]
+
     - name: Install python dependencies
       run: |
         pip install --upgrade pip
@@ -61,10 +70,14 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.11
-    - name: Install python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -e .[docs]
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${UV_VER}
+    - name: Install package
+      run: uv pip install --system -e .[docs]
+
     - name: Build docs
       run: cd docs && make
 
@@ -73,14 +86,19 @@ jobs:
     timeout-minutes: 15
     steps:
     - uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: 3.11
-    - name: Install python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -e .[pre_commit]
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${UV_VER}
+
+    - name: Install package
+      run: uv pip install --system -e .[dev]
+
     - name: Run pre-commit
-      run: |
-        pre-commit run --all-files || ( git status --short ; git diff ; exit 1 )
+      uses: pre-commit/action@v3.0.1
