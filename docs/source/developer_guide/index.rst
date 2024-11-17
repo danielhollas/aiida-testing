@@ -34,8 +34,7 @@ Enable enable automatic checks of code sanity and coding style::
     pre-commit install
 
 After this, the `yapf <https://github.com/google/yapf>`_ formatter,
-the `pylint <https://www.pylint.org/>`_ linter, the
-`prospector <https://pypi.org/project/prospector/>`_ code analyzer, and
+the `pylint <https://www.pylint.org/>`_ linter, and
 the `mypy <http://www.mypy-lang.org/>`_ static type checker will run
 at every commit.
 
@@ -71,17 +70,3 @@ Of course, you can also build the documentation locally::
     pip install -e .[docs]
     cd docs
     make
-
-PyPI release
-++++++++++++
-
-The process for creating a distribution and uploading it to PyPI is::
-
-    pip install twine
-    python setup.py sdist
-    twine upload dist/*
-
-This can only be done by people who are registered as ``aiida-testing``
-maintainers on PyPI. After this, you (and everyone else) should be able to::
-
-    pip install aiida-testing
