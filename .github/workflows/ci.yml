@@ -93,7 +93,7 @@ jobs:
         version: ${{ env.UV_VER }}
 
     - name: Install package
-      run: uv pip install --system -e .[dev]
+      run: uv pip install --system -e .[pre_commit]
 
     - name: Run pre-commit
       uses: pre-commit/action@v3.0.1
