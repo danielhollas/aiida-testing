@@ -1,6 +1,9 @@
-name: ci
+name: CI
 
 on: [push, pull_request]
+env:
+    UV_VER: "0.5.2"
+    FORCE_COLOR: 1
 
 jobs:
 
@@ -9,12 +12,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        python-version: ['3.9', '3.10']
-        editable_install_option: ['-e', '']
-        include:
-        #Test for aiida-core 1.X (since aiida-core 2.X does not support python 3.7)
-        - python-version: '3.7'
-          editable_install_option: '-e'
+        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
       fail-fast: false
 
     services:
@@ -37,16 +35,19 @@ jobs:
           - 5672:5672
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install python dependencies
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VER }}
+    - name: Install package
       run: |
-        pip install --upgrade pip
-        pip install ${{ matrix.editable_install_option }} .[testing]
+        uv pip install --system -e .[testing]
         reentry scan -r aiida || true
 
     - name: Run test suite
@@ -61,16 +62,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.7
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.7
-    - name: Install python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -e .[docs]
-        reentry scan -r aiida || true
+        python-version: '3.12'
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VER }}
+    - name: Install package
+      run: uv pip install --system -e .[docs]
+
     - name: Build docs
       run: cd docs && make
 
@@ -78,17 +82,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.8
-    - name: Install python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install -e .[pre_commit]
-        reentry scan -r aiida || true
+        python-version: '3.12'
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: ${{ env.UV_VER }}
+
+    - name: Install package
+      run: uv pip install --system -e .[pre_commit]
+
     - name: Run pre-commit
-      run: |
-        pre-commit install
-        pre-commit run --all-files || ( git status --short ; git diff ; exit 1 )
+      uses: pre-commit/action@v3.0.1

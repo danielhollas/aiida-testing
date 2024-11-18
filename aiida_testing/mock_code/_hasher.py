@@ -44,7 +44,7 @@ class InputHasher:
 
         return md5sum.hexdigest()
 
-    def modify_content(self, path: Path, content: bytes) -> ty.Optional[bytes]:  # pylint: disable=no-self-use,unused-argument
+    def modify_content(self, path: Path, content: bytes) -> ty.Optional[bytes]:  # pylint: disable=unused-argument
         """A sub-class hook to modify the contents of the file, before hashing.
 
         If None is returned, the file is ignored, when generating the hash.
