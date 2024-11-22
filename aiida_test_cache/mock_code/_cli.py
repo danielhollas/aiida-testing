@@ -1,21 +1,20 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Implements the executable for running a mock AiiDA code.
 """
-from datetime import datetime
+import fnmatch
 import os
-import sys
 import shutil
 import subprocess
+import sys
 import typing as ty
-import fnmatch
+from datetime import datetime
 from pathlib import Path
 
 from ._env_keys import MockVariables
 
 
-def run() -> None:  # pylint: disable=too-many-branches
+def run() -> None:
     """
     Run the mock AiiDA code. If the corresponding result exists, it is
     simply copied over to the current working directory. Otherwise,
@@ -39,12 +38,12 @@ def run() -> None:  # pylint: disable=too-many-branches
 
     try:
         hasher_cls = env.get_hasher()
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:
         _log(f"loading hasher: {exc}", error=True)
 
     try:
         hash_digest = hasher_cls(env, _log)(Path('.'))
-    except Exception as exc:  # pylint: disable=broad-except
+    except Exception as exc:
         _log(f"computing hash: {exc}", error=True)
 
     res_dir = env.data_dir / f"mock-{env.label}-{hash_digest}"
@@ -107,7 +106,7 @@ def copy_files(
     # accessing its content, hence using os.walk.
     for dirpath, _, filenames in os.walk(src_dir):
         relative_dir = Path(dirpath).relative_to(src_dir)
-        dirs_to_check = list(relative_dir.parents) + [relative_dir]
+        dirs_to_check = [*list(relative_dir.parents), relative_dir]
 
         if relative_dir.parts and relative_dir.parts[0] == ('.aiida'):
             continue

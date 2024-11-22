@@ -1,19 +1,18 @@
-# -*- coding: utf-8 -*-
 """
 Defines the environment variable names for the mock code execution.
 """
-from dataclasses import dataclass
-from enum import Enum
 import inspect
 import os
-from pathlib import Path
 import typing as ty
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
 
 from ._hasher import InputHasher, load_hasher
 
 
 @dataclass
-class MockVariables:  # pylint: disable=too-many-instance-attributes
+class MockVariables:
     """
     A class containing variables defined for the mock code execution.
     """

@@ -3,6 +3,7 @@ Test that ignoring paths works as expected.
 """
 import os
 from pathlib import Path
+
 import pytest
 
 from aiida_test_cache.mock_code._cli import copy_files
@@ -31,7 +32,7 @@ def run_directory(tmp_path_factory):
     yield tmp_path
 
 
-def test_ignore_paths(run_directory, tmp_path_factory):  # pylint: disable=redefined-outer-name
+def test_ignore_paths(run_directory, tmp_path_factory):
     """Test that ignore_paths works as expected."""
     storage_directory = tmp_path_factory.mktemp('storage')
 
@@ -69,7 +70,7 @@ def test_ignore_paths(run_directory, tmp_path_factory):  # pylint: disable=redef
     assert (storage_directory / 'my' / 'subfolder' / 'file3.txt').is_file()
 
 
-def test_ignore_files(run_directory, tmp_path_factory):  # pylint: disable=redefined-outer-name
+def test_ignore_files(run_directory, tmp_path_factory):
     """Test that ignore_files works as expected."""
     storage_directory = tmp_path_factory.mktemp('storage')
 

@@ -1,16 +1,15 @@
 """
 Defines helper functions for the archive_cache pytest fixtures
 """
-import typing as ty
-from functools import partial
+import os
 import pathlib
 import tempfile
-import os
+import typing as ty
+from functools import partial
 
 import pytest
-
-from aiida.orm import ProcessNode, QueryBuilder, Node
 from aiida.cmdline.utils.echo import echo_warning
+from aiida.orm import Node, ProcessNode, QueryBuilder
 
 __all__ = ('rehash_processes', 'monkeypatch_hash_objects')
 
@@ -47,8 +46,6 @@ def monkeypatch_hash_objects(
         monkeypatched on the Nodes, i.e. the _CLS_NODE_CACHING attribute
 
     """
-    #pylint: disable=too-few-public-methods,protected-access
-
     try:
         monkeypatch.setattr(node_class, "_get_objects_to_hash", hash_objects_func)
     except AttributeError:
@@ -75,15 +72,14 @@ def get_node_from_hash_objects_caller(caller: ty.Any) -> Node:
     try:
         #Case for AiiDA 2.0: The class holding the _get_objects_to_hash method
         #is the NodeCaching class not the actual node
-        return caller._node  #type: ignore[no-any-return] #pylint: disable=protected-access
+        return caller._node  #type: ignore[no-any-return]
     except AttributeError:
         return caller  #type: ignore[no-any-return]
 
 
 #Cross-compatible importing function for import AiiDA archives in 1.X and 2.X
 try:
-    from aiida.tools.archive import create_archive
-    from aiida.tools.archive import import_archive
+    from aiida.tools.archive import create_archive, import_archive
     import_archive = partial(import_archive, merge_extras=('n', 'c', 'u'), import_new_extras=True)
 
     def import_with_migrate(
@@ -96,9 +92,8 @@ try:
         Import AiiDA Archive. If the version is incompatible
         try to migrate the archive if --archive-cache-forbid-migration option is not specified
         """
-        #pylint: disable=import-outside-toplevel
-        from aiida.tools.archive import get_format
         from aiida.common.exceptions import IncompatibleStorageSchema
+        from aiida.tools.archive import get_format
 
         try:
             import_archive(archive_path, *args, **kwargs)
@@ -131,10 +126,12 @@ except ImportError:
         Import AiiDA Archive. If the version is incompatible
         try to migrate the archive if --archive-cache-forbid-migration option is not specified
         """
-        #pylint: disable=import-outside-toplevel
-        from aiida.tools.importexport import EXPORT_VERSION, IncompatibleArchiveVersionError
         # these are only availbale after aiida >= 1.5.0, maybe rely on verdi import instead
-        from aiida.tools.importexport import detect_archive_type
+        from aiida.tools.importexport import (
+            EXPORT_VERSION,
+            IncompatibleArchiveVersionError,
+            detect_archive_type,
+        )
         from aiida.tools.importexport.archive.migrators import get_migrator  # type: ignore[import-not-found]
 
         try:

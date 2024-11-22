@@ -2,9 +2,10 @@
 Defines fixtures for mocking AiiDA codes, with caching at the level of
 the executable.
 """
+# ruff: noqa: F405
 
-from ._hasher import InputHasher
-from ._fixtures import *
+from ._fixtures import *  # noqa: F403
+from ._hasher import InputHasher  # noqa: F401
 
 # Note: This is necessary for the sphinx doc - otherwise it does not find aiida_test_cache.mock_code.mock_code_factory
 __all__ = (
