@@ -8,26 +8,23 @@ import pathlib
 import shutil
 import typing as ty
 import uuid
-import warnings
 
 import click
 import pytest
-from aiida import __version__ as aiida_version
-from aiida.orm import Code
-from pkg_resources import parse_version
+from aiida.orm import InstalledCode
 
 from .._config import CONFIG_FILE_NAME, Config, ConfigActions
 from ._env_keys import MockVariables
 from ._hasher import InputHasher
 
 __all__ = (
-    "pytest_addoption",
-    "testing_config_action",
-    "mock_regenerate_test_data",
-    "mock_fail_on_missing",
-    "mock_disable_mpi",
-    "testing_config",
     "mock_code_factory",
+    "mock_disable_mpi",
+    "mock_fail_on_missing",
+    "mock_regenerate_test_data",
+    "pytest_addoption",
+    "testing_config",
+    "testing_config_action",
 )
 
 
@@ -106,7 +103,7 @@ def testing_config(testing_config_action):
 
 
 def _forget_mpi_decorator(func):
-    """Modify :py:meth:`aiida.orm.Code.get_prepend_cmdline_params` to discard MPI parameters."""
+    """Modify :py:meth:`aiida.orm.InstalledCode.get_prepend_cmdline_params` to discard MPI parameters."""
 
     def _get_prepend_cmdline_params(self, mpi_args=None, extra_mpirun_params=None):  # noqa: ARG001
         return func(self)
@@ -117,11 +114,10 @@ def _forget_mpi_decorator(func):
 @pytest.fixture(scope='function')
 def mock_code_factory(
     aiida_localhost, testing_config, testing_config_action, mock_regenerate_test_data,
-    mock_fail_on_missing, mock_disable_mpi, monkeypatch, request: pytest.FixtureRequest,
-    tmp_path: pathlib.Path
+    mock_fail_on_missing, mock_disable_mpi, monkeypatch, request, tmp_path
 ):
     """
-    Fixture to create a mock AiiDA Code.
+    Fixture to create a mock AiiDA InstalledCode.
 
     testing_config_action :
         Read config file if present ('read'), require config file ('require') or generate new config file ('generate').
@@ -134,10 +130,9 @@ def mock_code_factory(
         label: str,
         entry_point: ty.Optional[str] = None,
         data_dir_abspath: ty.Union[None, str, pathlib.Path] = None,
-        ignore_files: ty.Iterable[str] = ('_aiidasubmit.sh', ),
         ignore_paths: ty.Iterable[str] = ('_aiidasubmit.sh', ),
         executable_name: str = '',
-        hasher: ty.Type[InputHasher] = InputHasher,
+        hasher: type[InputHasher] = InputHasher,
         _config: Config = testing_config,
         _config_action: str = testing_config_action,
         _regenerate_test_data: bool = mock_regenerate_test_data,
@@ -159,9 +154,6 @@ def mock_code_factory(
         data_dir_abspath :
             Absolute path of the directory where the code results are
             stored.
-        ignore_files :
-            A list of file names (UNIX shell style patterns allowed) which are not copied to the results directory
-            after the code has been executed.
         ignore_paths :
             A list of paths (UNIX shell style patterns allowed) that are not copied to the results directory
             after the code has been executed.
@@ -174,21 +166,10 @@ def mock_code_factory(
             If 'generate', add new key (label) to config dictionary.
         _regenerate_test_data :
             If True, regenerate test data instead of reusing.
-
-        .. deprecated:: 0.1.0
-            Keyword `ignore_files` is deprecated and will be removed in `v1.0`. Use `ignore_paths` instead.
         """
-        if ignore_files != ('_aiidasubmit.sh', ):
-            warnings.warn(
-                'keyword `ignore_files` is deprecated and will be removed in `v1.0`. Use `ignore_paths` instead.',
-                DeprecationWarning,
-                stacklevel=2
-            )
-
         # It's easy to forget the final comma and pass a string, e.g. `ignore_paths = ('_aiidasubmit.sh')`
-        for arg in (ignore_paths, ignore_files):
-            assert isinstance(arg, collections.abc.Iterable) and not isinstance(arg, str), \
-                f"'ignore_files' and 'ignore_paths' arguments must be tuples or lists, found {type(arg)}"
+        assert isinstance(ignore_paths, collections.abc.Iterable) and not isinstance(ignore_paths, str), \
+                f"'ignore_paths' argument must be tuple or list, found {type(ignore_paths)}"
 
         if entry_point is None:
             entry_point = label
@@ -244,9 +225,10 @@ def mock_code_factory(
 
         if _config_action == ConfigActions.GENERATE.value:
             mock_code_config[label] = code_executable_path
-        code = Code(
+        code = InstalledCode(
             input_plugin_name=entry_point,
-            remote_computer_exec=[aiida_localhost, mock_executable_path]
+            computer=aiida_localhost,
+            filepath_executable=mock_executable_path,
         )
         code.label = code_label
         variables = MockVariables(
@@ -255,7 +237,6 @@ def mock_code_factory(
             test_name=request.node.name,
             data_dir=data_dir_pl,
             executable_path=code_executable_path,
-            ignore_files=ignore_files,
             ignore_paths=ignore_paths,
             regenerate_data=_regenerate_test_data,
             fail_on_missing=_fail_on_missing,
@@ -268,19 +249,10 @@ def mock_code_factory(
         # Monkeypatch MPI behavior of code class, if requested either directly via `--mock-disable-mpi` or
         # indirectly via `--mock-fail-on-missing` (no need to use MPI in this case)
         if _disable_mpi or _fail_on_missing:
-            is_mpi_disable_supported = parse_version(aiida_version) >= parse_version('2.1.0')
-
-            if not is_mpi_disable_supported:
-                if _disable_mpi:
-                    raise ValueError(
-                        "Upgrade to AiiDA >= 2.1.0 in order to use `--mock-disable-mpi`"
-                    )
-                # if only _fail_on_missing, we silently do not disable MPI
-            else:
-                monkeypatch.setattr(
-                    code.__class__, 'get_prepend_cmdline_params',
-                    _forget_mpi_decorator(code.__class__.get_prepend_cmdline_params)
-                )
+            monkeypatch.setattr(
+                code.__class__, 'get_prepend_cmdline_params',
+                _forget_mpi_decorator(code.__class__.get_prepend_cmdline_params)
+            )
 
         return code
 

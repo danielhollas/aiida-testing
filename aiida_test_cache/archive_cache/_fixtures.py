@@ -13,8 +13,8 @@ from aiida import plugins
 from aiida.common.links import LinkType
 from aiida.manage.caching import enable_caching
 from aiida.orm import (
+    AbstractCode,
     CalcJobNode,
-    Code,
     Dict,
     FolderData,
     List,
@@ -33,8 +33,8 @@ from ._utils import (
 )
 
 __all__ = (
-    "pytest_addoption", "absolute_archive_path", "enable_archive_cache", "liberal_hash",
-    "archive_cache_forbid_migration", "archive_cache_overwrite"
+    "absolute_archive_path", "archive_cache_forbid_migration", "archive_cache_overwrite",
+    "enable_archive_cache", "liberal_hash", "pytest_addoption"
 )
 
 
@@ -172,8 +172,7 @@ def enable_archive_cache(
     @contextmanager
     def _enable_archive_cache(
         archive_path: ty.Union[str, pathlib.Path],
-        calculation_class: ty.Union[ty.Type[CalcJobNode], ty.Sequence[ty.Type[CalcJobNode]],
-                                    None] = None,
+        calculation_class: ty.Union[type[CalcJobNode], ty.Sequence[type[CalcJobNode]], None] = None,
         overwrite: bool = False
     ) -> ty.Generator[None, None, None]:
         """
@@ -210,7 +209,7 @@ def enable_archive_cache(
             # create export of all calculation_classes
             # Another solution out of this is to check the time before and
             # after the yield and export ONLY the jobcalc classes created within this time frame
-            queryclass: ty.Union[ty.Type[CalcJobNode], ty.Sequence[ty.Type[CalcJobNode]]]
+            queryclass: ty.Union[type[CalcJobNode], ty.Sequence[type[CalcJobNode]]]
             if calculation_class is None:
                 queryclass = CalcJobNode
             else:
@@ -246,11 +245,11 @@ def liberal_hash(monkeypatch: pytest.MonkeyPatch, testing_config: Config) -> Non
 
     def mock_objects_to_hash_code(self):
         """
-        Return a list of objects which should be included in the hash of a Code node
+        Return a list of objects which should be included in the hash of a AbstractCode node
         """
         self = get_node_from_hash_objects_caller(self)
         # computer names are changed by aiida-core if imported and do not have same uuid.
-        return [self.get_attribute(key='input_plugin')]
+        return [self.base.attributes.get(key='input_plugin')]
 
     def mock_objects_to_hash_calcjob(self):
         """
@@ -266,14 +265,14 @@ def liberal_hash(monkeypatch: pytest.MonkeyPatch, testing_config: Config) -> Non
 
         objects = [{
             key: val
-            for key, val in self.attributes_items()
+            for key, val in self.base.attributes.items()
             if key not in self._hash_ignored_attributes and key not in self._updatable_attributes
         },
                    {
-                       entry.link_label: entry.node.get_hash()
-                       for entry in
-                       self.get_incoming(link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK))
-                       if entry.link_label not in hash_ignored_inputs
+                       entry.link_label: entry.node.base.caching.get_hash()
+                       for entry in self.base.links.get_incoming(
+                           link_type=(LinkType.INPUT_CALC, LinkType.INPUT_WORK)
+                       ) if entry.link_label not in hash_ignored_inputs
                    }]
         return objects
 
@@ -290,13 +289,13 @@ def liberal_hash(monkeypatch: pytest.MonkeyPatch, testing_config: Config) -> Non
         objects = [
             {
                 key: val
-                for key, val in self.attributes_items() if key not in self._hash_ignored_attributes
-                and key not in self._updatable_attributes
+                for key, val in self.base.attributes.items() if
+                key not in self._hash_ignored_attributes and key not in self._updatable_attributes
             },
         ]
         return objects
 
-    monkeypatch_hash_objects(monkeypatch, Code, mock_objects_to_hash_code)
+    monkeypatch_hash_objects(monkeypatch, AbstractCode, mock_objects_to_hash_code)
     monkeypatch_hash_objects(monkeypatch, CalcJobNode, mock_objects_to_hash_calcjob)
 
     nodes_to_patch = [Dict, SinglefileData, List, FolderData, RemoteData, StructureData]

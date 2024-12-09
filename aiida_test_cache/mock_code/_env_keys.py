@@ -22,11 +22,10 @@ class MockVariables:
     test_name: str
     data_dir: Path
     executable_path: str
-    ignore_files: ty.Iterable[str]
     ignore_paths: ty.Iterable[str]
     regenerate_data: bool
     fail_on_missing: bool
-    _hasher: ty.Union[str, ty.Type[InputHasher]]
+    _hasher: ty.Union[str, type[InputHasher]]
 
     @classmethod
     def from_env(cls) -> "MockVariables":
@@ -39,14 +38,13 @@ class MockVariables:
             test_name=os.environ[_EnvKeys.TEST_NAME.value],
             data_dir=Path(os.environ[_EnvKeys.DATA_DIR.value]),
             executable_path=os.environ[_EnvKeys.EXECUTABLE_PATH.value],
-            ignore_files=os.environ[_EnvKeys.IGNORE_FILES.value].split(":"),
             ignore_paths=os.environ[_EnvKeys.IGNORE_PATHS.value].split(":"),
             regenerate_data=os.environ[_EnvKeys.REGENERATE_DATA.value] == "True",
             fail_on_missing=os.environ[_EnvKeys.FAIL_ON_MISSING.value] == "True",
             _hasher=os.environ.get(_EnvKeys.HASHER.value, InputHasher),
         )
 
-    def get_hasher(self) -> ty.Type[InputHasher]:
+    def get_hasher(self) -> type[InputHasher]:
         """
         Return the hasher class.
         """
@@ -67,7 +65,6 @@ class MockVariables:
                 export {_EnvKeys.LABEL.value}="{self.label}"
                 export {_EnvKeys.DATA_DIR.value}="{self.data_dir}"
                 export {_EnvKeys.EXECUTABLE_PATH.value}="{self.executable_path}"
-                export {_EnvKeys.IGNORE_FILES.value}="{':'.join(self.ignore_files)}"
                 export {_EnvKeys.IGNORE_PATHS.value}="{':'.join(self.ignore_paths)}"
                 export {_EnvKeys.REGENERATE_DATA.value}={'True' if self.regenerate_data else 'False'}
                 export {_EnvKeys.FAIL_ON_MISSING.value}={'True' if self.fail_on_missing else 'False'}
@@ -93,7 +90,6 @@ class _EnvKeys(Enum):
     LABEL = "AIIDA_MOCK_LABEL"
     DATA_DIR = "AIIDA_MOCK_DATA_DIR"
     EXECUTABLE_PATH = "AIIDA_MOCK_EXECUTABLE_PATH"
-    IGNORE_FILES = "AIIDA_MOCK_IGNORE_FILES"
     IGNORE_PATHS = "AIIDA_MOCK_IGNORE_PATHS"
     REGENERATE_DATA = "AIIDA_MOCK_REGENERATE_DATA"
     FAIL_ON_MISSING = "AIIDA_MOCK_FAIL_ON_MISSING"
