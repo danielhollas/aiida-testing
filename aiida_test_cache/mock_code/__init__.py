@@ -21,9 +21,9 @@ __all__ = (
 # WARNING: It's not clear what happens if the user later loads
 # the old fixtures as well.
 from aiida import __version__ as aiida_version
-from pkg_resources import parse_version
+from packaging.version import Version
 
-if parse_version(aiida_version) >= parse_version('2.6.0'):
+if Version(aiida_version) >= Version('2.6.0'):
     aiida_core_fixtures = 'aiida.tools.pytest_fixtures'
 else:
     aiida_core_fixtures = 'aiida.manage.tests.pytest_fixtures'
