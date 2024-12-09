@@ -60,7 +60,7 @@ jobs:
     - name: Run test suite
       env:
         # show timings of tests
-        PYTEST_ADDOPTS: "--durations=10"
+        PYTEST_ADDOPTS: "--durations=0"
       run: |
         aiida-mock-code || true
         pytest --cov=aiida_test_cache tests/
