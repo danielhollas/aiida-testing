@@ -2,6 +2,7 @@
 Test basic usage of the mock code on examples using aiida-diff.
 """
 import os
+from pathlib import Path
 
 import pytest
 from aiida.engine import ToContext, WorkChain, run_get_node
@@ -12,6 +13,7 @@ from aiida.plugins import CalculationFactory
 from aiida_test_cache.archive_cache._utils import create_node_archive, load_node_archive
 
 CALC_ENTRY_POINT = 'diff'
+CWD = Path(__file__).parent
 
 #### diff workchain for basic tests
 
@@ -90,7 +92,7 @@ def test_create_node_archive(
     inputs = {'diff': generate_diff_inputs()}
     mock_code = mock_code_factory(
         label='diff',
-        data_dir_abspath=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'calc_data'),
+        data_dir_abspath=CWD / 'calc_data',
         entry_point=CALC_ENTRY_POINT,
         ignore_paths=('_aiidasubmit.sh', 'file*')
     )
@@ -131,7 +133,7 @@ def test_mock_hash_codes(aiida_profile_clean, mock_code_factory, liberal_hash):
 
     mock_code = mock_code_factory(
         label='diff',
-        data_dir_abspath=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'calc_data'),
+        data_dir_abspath=CWD / 'calc_data',
         entry_point=CALC_ENTRY_POINT,
         ignore_paths=('_aiidasubmit.sh', 'file*')
     )
@@ -140,10 +142,7 @@ def test_mock_hash_codes(aiida_profile_clean, mock_code_factory, liberal_hash):
 
 
 @pytest.mark.parametrize(
-    'archive_path', [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'caches/test_workchain.tar.gz'),
-        'test_workchain.tar.gz'
-    ]
+    'archive_path', [CWD / 'caches/test_workchain.tar.gz', 'test_workchain.tar.gz']
 )
 def test_enable_archive_cache(
     archive_path, aiida_profile_clean, aiida_code_installed, generate_diff_inputs,
