@@ -16,6 +16,16 @@ if Version(aiida_version) < Version('2.6.0'):
     def aiida_profile_clean(clear_database):
         pass
 
+    @pytest.fixture
+    def aiida_code_installed(aiida_local_code_factory):
+
+        def _code(filepath_executable):
+            return aiida_local_code_factory(
+                executable=filepath_executable, entry_point=filepath_executable
+            )
+
+        return _code
+
 
 @pytest.fixture
 def generate_diff_inputs(datadir):
