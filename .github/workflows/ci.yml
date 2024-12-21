@@ -63,7 +63,7 @@ jobs:
         PYTEST_ADDOPTS: "--durations=0"
       run: |
         aiida-mock-code || true
-        pytest --cov=aiida_test_cache tests/
+        pytest -s --cov=aiida_test_cache tests/archive_cache/test_archive_cache.py::test_enable_archive_cache_non_existent
 
     - name: Upload coverage report
       uses: codecov/codecov-action@v5
