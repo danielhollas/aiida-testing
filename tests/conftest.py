@@ -19,9 +19,9 @@ if Version(aiida_version) < Version('2.6.0'):
     @pytest.fixture
     def aiida_code_installed(aiida_local_code_factory):
 
-        def _code(filepath_executable):
+        def _code(filepath_executable, default_calc_job_plugin):
             return aiida_local_code_factory(
-                executable=filepath_executable, entry_point=filepath_executable
+                executable=filepath_executable, entry_point=default_calc_job_plugin
             )
 
         return _code
