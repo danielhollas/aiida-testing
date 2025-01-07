@@ -46,7 +46,7 @@ class DiffWorkChain(WorkChain):
 
 @pytest.fixture(name='check_diff_workchain')
 def check_diff_workchain_fixture():
-    """Fixture to check the correct outputs/cachgin of the Diffworkchain
+    """Fixture to check the correct outputs/caching of the Diffworkchain
     in the tests in this file"""
 
     EXPECTED_DIFF = """1,2c1
@@ -71,9 +71,9 @@ def check_diff_workchain_fixture():
 
         #Make sure that the cache was used if it should have been
         if should_have_used_cache:
-            assert cache_src is not None
+            assert cache_src is not None, "Workchain did not use cache even though it should have"
         else:
-            assert cache_src is None
+            assert cache_src is None, "Workchain used the cache even though it shouldn't have"
 
     return _check_diff_workchain
 
@@ -153,7 +153,9 @@ def test_enable_archive_cache(
     """
 
     inputs = {'diff': generate_diff_inputs()}
-    diff_code = aiida_code_installed(filepath_executable='diff')
+    diff_code = aiida_code_installed(
+        filepath_executable='diff', default_calc_job_plugin=CALC_ENTRY_POINT
+    )
     diff_code.store()
     inputs['diff']['code'] = diff_code
     with enable_archive_cache(archive_path, calculation_class=CalculationFactory(CALC_ENTRY_POINT)):
